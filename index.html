@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chile en Porcentaje — ¿Cuánto de Chile has recorrido?</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <svg class="brand-flag" viewBox="0 0 3 2" aria-hidden="true">
+        <rect width="3" height="2" fill="#D52B1E"/>
+        <rect width="3" height="1" fill="#FFFFFF"/>
+        <rect width="1" height="1" fill="#0039A6"/>
+        <polygon points="0.5,0.2 0.5674,0.4073 0.7853,0.4073 0.609,0.5354 0.6763,0.7427 0.5,0.6146 0.3237,0.7427 0.391,0.5354 0.2147,0.4073 0.4326,0.4073" fill="#FFFFFF"/>
+      </svg>
+      <div class="brand-text">
+        <h1>Chile en Porcentaje</h1>
+        <p>Marca las comunas que has visitado y descubre cuánto del país has recorrido</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button id="btn-theme" class="btn btn-ghost btn-icon" title="Cambiar entre modo claro y oscuro">🌙</button>
+      <button id="btn-share" class="btn btn-ghost" title="Genera una tarjeta con tu progreso">Compartir</button>
+      <button id="btn-compare" class="btn btn-ghost" title="Compara tu progreso con el de un amigo">Comparar</button>
+      <button id="btn-export" class="btn btn-ghost" title="Descargar tu progreso como archivo">Exportar</button>
+      <label class="btn btn-ghost" title="Cargar un progreso guardado">
+        Importar
+        <input id="input-import" type="file" accept="application/json" hidden>
+      </label>
+      <button id="btn-reset" class="btn btn-ghost btn-danger" title="Borrar todo tu progreso">Reiniciar</button>
+    </div>
+  </header>
+
+  <main class="layout">
+
+    <section class="map-wrap">
+      <div id="map"></div>
+      <div id="map-loading" class="map-loading">
+        <span class="map-loading-spinner"></span>
+        Cargando el mapa de Chile…
+      </div>
+      <div class="map-legend">
+        <span class="legend-status">
+          <span class="dot dot-visited"></span> Visitada
+          <span class="dot dot-wishlist"></span> Quiero ir
+          <span class="dot dot-unvisited"></span> Sin visitar
+        </span>
+        <label class="legend-toggle">
+          <input type="checkbox" id="toggle-airports">
+          <span class="legend-airport">✈</span> Aeropuertos
+        </label>
+        <label class="legend-toggle">
+          <input type="checkbox" id="toggle-parks">
+          <span class="legend-park">🌲</span> Áreas protegidas
+        </label>
+      </div>
+    </section>
+
+    <aside class="sidebar">
+
+      <div class="stat-card">
+        <div class="stat-ring">
+          <svg viewBox="0 0 120 120" class="ring-svg">
+            <circle cx="60" cy="60" r="52" class="ring-bg"/>
+            <circle cx="60" cy="60" r="52" class="ring-fg" id="ring-fg"/>
+          </svg>
+          <div class="ring-label">
+            <span id="stat-percent">0%</span>
+            <small id="stat-count">0 / 0 comunas</small>
+          </div>
+        </div>
+        <button id="btn-timeline" class="timeline-link" type="button">📖 Ver tu bitácora de viajes</button>
+      </div>
+
+      <div class="badges-panel">
+        <div class="panel-header">
+          <h2>Logros</h2>
+          <span class="panel-hint" id="badges-count">0/0</span>
+        </div>
+        <div id="badges-grid" class="badges-grid"></div>
+      </div>
+
+      <div class="search-box">
+        <input id="search-input" type="text" placeholder="Buscar una comuna…" autocomplete="off">
+        <div id="search-results" class="search-results"></div>
+      </div>
+
+      <div class="reco-panel">
+        <div class="panel-header">
+          <h2>Recomendado para ti</h2>
+          <span class="panel-hint">destinos turísticos cercanos</span>
+        </div>
+
+        <div class="home-picker">
+          <span class="home-label">📍 Vives en <strong id="home-value">sin definir</strong></span>
+          <button id="home-edit-btn" class="home-edit-btn" type="button">Elegir</button>
+        </div>
+        <div id="home-search-wrap" class="home-search-wrap" hidden>
+          <input id="home-search-input" type="text" placeholder="Busca tu comuna…" autocomplete="off">
+          <div id="home-search-results" class="search-results"></div>
+        </div>
+
+        <div class="reco-quick-actions">
+          <button id="btn-geolocate" type="button" class="reco-quick-btn">🧭 Cerca de mí ahora</button>
+          <button id="btn-weekend-route" type="button" class="reco-quick-btn">🗺️ Ruta de fin de semana</button>
+        </div>
+        <p id="geolocate-hint" class="reco-empty" hidden></p>
+
+        <p id="reco-empty-hint" class="reco-empty">Marca al menos una comuna visitada para recibir recomendaciones.</p>
+        <div id="reco-list" class="reco-list"></div>
+      </div>
+
+      <div class="categories-panel">
+        <div class="panel-header">
+          <h2>Tipos de destino</h2>
+          <span class="panel-hint">de lo que ya conoces</span>
+        </div>
+        <div id="categories-list" class="regions-list"></div>
+      </div>
+
+      <div class="regions-panel">
+        <div class="panel-header">
+          <h2>Por región</h2>
+          <span class="panel-hint">de norte a sur</span>
+        </div>
+        <div id="regions-list" class="regions-list"></div>
+      </div>
+
+      <div class="parks-panel">
+        <div class="panel-header">
+          <h2>Áreas protegidas</h2>
+          <span class="panel-hint" id="parks-count">0/0</span>
+        </div>
+        <div id="parks-list" class="parks-list"></div>
+      </div>
+
+      <div class="wishlist-panel">
+        <div class="panel-header">
+          <h2>Lista de deseos</h2>
+          <span id="wishlist-empty-hint" class="panel-hint">ninguna aún</span>
+        </div>
+        <div id="wishlist-list" class="visited-list"></div>
+      </div>
+
+      <div class="visited-panel">
+        <div class="panel-header">
+          <h2>Comunas visitadas</h2>
+          <span id="visited-empty-hint" class="panel-hint">ninguna aún</span>
+        </div>
+        <div id="visited-list" class="visited-list"></div>
+      </div>
+
+    </aside>
+
+  </main>
+</div>
+
+<div id="comuna-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button id="modal-close" class="modal-close" type="button" aria-label="Cerrar">&times;</button>
+    <h3 id="modal-title" class="modal-title">Comuna</h3>
+    <p id="modal-region" class="modal-region">Región</p>
+
+    <div class="status-toggle">
+      <button type="button" class="status-btn" data-status="none">Sin marcar</button>
+      <button type="button" class="status-btn" data-status="wishlist">🎒 Quiero ir</button>
+      <button type="button" class="status-btn" data-status="visited">✅ Visitada</button>
+    </div>
+
+    <div id="modal-fields-visited" class="modal-fields" hidden>
+      <label class="modal-label">Fecha
+        <input id="modal-date" type="date">
+      </label>
+      <label class="modal-label">¿Con quién fuiste?
+        <input id="modal-companion" type="text" placeholder="Familia, pareja, amigos…" maxlength="80">
+      </label>
+    </div>
+
+    <div id="modal-fields-note" class="modal-fields" hidden>
+      <label class="modal-label">Notas
+        <textarea id="modal-note" rows="3" placeholder="¿Qué recuerdas de este lugar?" maxlength="400"></textarea>
+      </label>
+    </div>
+
+    <div class="modal-actions">
+      <button id="modal-save" class="btn btn-primary" type="button">Guardar</button>
+      <button id="modal-cancel" class="btn btn-ghost" type="button">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div id="share-modal" class="modal-overlay" hidden>
+  <div class="modal-card share-card">
+    <button id="share-modal-close" class="modal-close" type="button" aria-label="Cerrar">&times;</button>
+    <h3 class="modal-title">Tu tarjeta de viajero</h3>
+    <img id="share-preview" class="share-preview" alt="Tarjeta de progreso en Chile en Porcentaje">
+    <div class="modal-actions">
+      <a id="share-download" class="btn btn-primary" download="chile-en-porcentaje.png">Descargar imagen</a>
+      <button id="share-modal-cancel" class="btn btn-ghost" type="button">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div id="timeline-modal" class="modal-overlay" hidden>
+  <div class="modal-card timeline-card">
+    <button id="timeline-close" class="modal-close" type="button" aria-label="Cerrar">&times;</button>
+    <h3 class="modal-title">Tu bitácora de viajes</h3>
+    <p class="modal-region">Todo lo que has visitado, en orden</p>
+    <div id="timeline-list" class="timeline-list"></div>
+  </div>
+</div>
+
+<div id="compare-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <button id="compare-close" class="modal-close" type="button" aria-label="Cerrar">&times;</button>
+    <h3 class="modal-title">Comparar con un amigo</h3>
+    <p class="modal-region">Carga el archivo exportado de otra persona. Esto no modifica tu progreso.</p>
+    <label class="btn btn-primary compare-upload-btn">
+      Elegir archivo…
+      <input id="input-compare" type="file" accept="application/json" hidden>
+    </label>
+    <div id="compare-results" class="compare-results"></div>
+    <div class="modal-actions">
+      <button id="compare-cancel" class="btn btn-ghost" type="button">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
