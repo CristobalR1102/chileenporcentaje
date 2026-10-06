@@ -112,6 +112,7 @@
           <button id="btn-weekend-route" type="button" class="reco-quick-btn">🗺️ Ruta de fin de semana</button>
         </div>
         <p id="geolocate-hint" class="reco-empty" hidden></p>
+        <button id="holiday-banner" class="holiday-banner" type="button" hidden></button>
 
         <p id="reco-empty-hint" class="reco-empty">Marca al menos una comuna visitada para recibir recomendaciones.</p>
         <div id="reco-list" class="reco-list"></div>
@@ -167,6 +168,15 @@
     <button id="modal-close" class="modal-close" type="button" aria-label="Cerrar">&times;</button>
     <h3 id="modal-title" class="modal-title">Comuna</h3>
     <p id="modal-region" class="modal-region">Región</p>
+
+    <p id="modal-wiki-loading" class="modal-wiki-loading" hidden>Buscando información…</p>
+    <div id="modal-wiki" class="modal-wiki" hidden>
+      <img id="modal-wiki-img" class="modal-wiki-img" alt="" hidden>
+      <div class="modal-wiki-body">
+        <p id="modal-wiki-text" class="modal-wiki-text"></p>
+        <a id="modal-wiki-link" class="modal-wiki-link" href="#" target="_blank" rel="noopener noreferrer">Leer más en Wikipedia ↗</a>
+      </div>
+    </div>
 
     <div class="status-toggle">
       <button type="button" class="status-btn" data-status="none">Sin marcar</button>

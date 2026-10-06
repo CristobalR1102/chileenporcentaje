@@ -344,6 +344,11 @@
     modalOverlay: document.getElementById("comuna-modal"),
     modalTitle: document.getElementById("modal-title"),
     modalRegion: document.getElementById("modal-region"),
+    modalWikiLoading: document.getElementById("modal-wiki-loading"),
+    modalWiki: document.getElementById("modal-wiki"),
+    modalWikiImg: document.getElementById("modal-wiki-img"),
+    modalWikiText: document.getElementById("modal-wiki-text"),
+    modalWikiLink: document.getElementById("modal-wiki-link"),
     modalClose: document.getElementById("modal-close"),
     modalFieldsVisited: document.getElementById("modal-fields-visited"),
     modalFieldsNote: document.getElementById("modal-fields-note"),
@@ -362,6 +367,7 @@
     timelineModal: document.getElementById("timeline-modal"),
     timelineClose: document.getElementById("timeline-close"),
     timelineList: document.getElementById("timeline-list"),
+    holidayBanner: document.getElementById("holiday-banner"),
     compareModal: document.getElementById("compare-modal"),
     compareClose: document.getElementById("compare-close"),
     compareCancel: document.getElementById("compare-cancel"),
@@ -621,6 +627,68 @@
     };
     weatherCache.set(cacheId, result);
     return result;
+  }
+
+  // ---------- Wikipedia (short summary + photo for the detail modal) ----------
+
+  const wikiCache = new Map(); // cacheKey -> { extract, thumbnail, pageUrl } | null
+
+  async function fetchWikipediaSummary(cacheKey, searchQuery) {
+    if (wikiCache.has(cacheKey)) return wikiCache.get(cacheKey);
+    try {
+      const searchUrl = `https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(searchQuery)}&format=json&origin=*&srlimit=1`;
+      const searchRes = await fetch(searchUrl);
+      if (!searchRes.ok) throw new Error("wiki search failed");
+      const searchData = await searchRes.json();
+      const title = searchData?.query?.search?.[0]?.title;
+      if (!title) {
+        wikiCache.set(cacheKey, null);
+        return null;
+      }
+      const summaryUrl = `https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
+      const summaryRes = await fetch(summaryUrl);
+      if (!summaryRes.ok) throw new Error("wiki summary failed");
+      const data = await summaryRes.json();
+      if (!data.extract) {
+        wikiCache.set(cacheKey, null);
+        return null;
+      }
+      const result = {
+        extract: data.extract,
+        thumbnail: data.thumbnail && data.thumbnail.source,
+        pageUrl: (data.content_urls && data.content_urls.desktop && data.content_urls.desktop.page) || null,
+      };
+      wikiCache.set(cacheKey, result);
+      return result;
+    } catch (e) {
+      wikiCache.set(cacheKey, null);
+      return null;
+    }
+  }
+
+  function loadWikiInfo(kind, id, searchQuery) {
+    el.modalWiki.hidden = true;
+    el.modalWikiImg.hidden = true;
+    el.modalWikiLoading.hidden = false;
+
+    fetchWikipediaSummary(`${kind}:${id}`, searchQuery).then((info) => {
+      // The user may have opened a different entity while this was in flight.
+      if (modalKind !== kind || modalId !== id) return;
+      el.modalWikiLoading.hidden = true;
+      if (!info) {
+        el.modalWiki.hidden = true;
+        return;
+      }
+      el.modalWikiText.textContent = info.extract;
+      el.modalWikiLink.href = info.pageUrl || "#";
+      if (info.thumbnail) {
+        el.modalWikiImg.src = info.thumbnail;
+        el.modalWikiImg.hidden = false;
+      } else {
+        el.modalWikiImg.hidden = true;
+      }
+      el.modalWiki.hidden = false;
+    });
   }
 
   // ---------- Theme ----------
@@ -1299,6 +1367,83 @@
     renderRecommendations();
   });
 
+  // ---------- Holidays (long-weekend banner) ----------
+
+  function computeLongWeekends(holidays) {
+    const holidayDates = new Set(holidays.map((h) => h.date));
+    function isNonWorking(date) {
+      const dow = date.getDay();
+      if (dow === 0 || dow === 6) return true;
+      return holidayDates.has(date.toISOString().slice(0, 10));
+    }
+
+    const seenStarts = new Set();
+    const blocks = [];
+    for (const h of holidays) {
+      let start = new Date(`${h.date}T00:00:00`);
+      let end = new Date(start);
+      for (let guard = 0; guard < 10; guard++) {
+        const prev = new Date(start);
+        prev.setDate(prev.getDate() - 1);
+        if (!isNonWorking(prev)) break;
+        start = prev;
+      }
+      for (let guard = 0; guard < 10; guard++) {
+        const next = new Date(end);
+        next.setDate(next.getDate() + 1);
+        if (!isNonWorking(next)) break;
+        end = next;
+      }
+      const key = start.toISOString().slice(0, 10);
+      if (seenStarts.has(key)) continue;
+      seenStarts.add(key);
+      const days = Math.round((end - start) / 86400000) + 1;
+      if (days >= 3) blocks.push({ start, end, days, title: h.title });
+    }
+    blocks.sort((a, b) => a.start - b.start);
+    return blocks;
+  }
+
+  function formatShortDate(date) {
+    return date.toLocaleDateString("es-CL", { day: "numeric", month: "short" });
+  }
+
+  async function initHolidayBanner() {
+    try {
+      const res = await fetch("https://api.boostr.cl/holidays.json");
+      if (!res.ok) return;
+      const data = await res.json();
+      const holidays = Array.isArray(data.data) ? data.data : [];
+      const blocks = computeLongWeekends(holidays);
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const upcoming = blocks.find((b) => b.end >= today);
+      if (!upcoming) return;
+
+      const daysUntil = Math.round((upcoming.start - today) / 86400000);
+      const when = daysUntil <= 0 ? "¡Es ahora!" : daysUntil === 1 ? "Empieza mañana" : `En ${daysUntil} días`;
+
+      el.holidayBanner.innerHTML = `🎉 <span>Próximo finde largo: <strong>${formatShortDate(upcoming.start)}–${formatShortDate(upcoming.end)}</strong> (${escapeHtml(upcoming.title)}) · ${when}. Toca para armar una ruta.</span>`;
+      el.holidayBanner.hidden = false;
+      el.holidayBanner.addEventListener("click", () => {
+        if (!showingRoute) {
+          showingRoute = true;
+          el.btnWeekendRoute.classList.add("active");
+          if (usingLiveLocation) {
+            usingLiveLocation = false;
+            el.btnGeolocate.classList.remove("active");
+          }
+          renderRecommendations();
+        }
+        el.recoList.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      });
+    } catch (e) {
+      /* holidays are a nice-to-have extra; fail silently if the feed is unreachable */
+    }
+  }
+  initHolidayBanner();
+
   // ---------- Detail modal (comunas + protected areas) ----------
 
   function updateModalStatusUI() {
@@ -1310,7 +1455,7 @@
   }
 
   function openEntityModal(kind, id) {
-    let title, regionLabel, visitedMeta, wishMeta;
+    let title, regionLabel, visitedMeta, wishMeta, wikiQuery;
 
     if (kind === "park") {
       const p = state.parkById.get(id);
@@ -1320,6 +1465,7 @@
       regionLabel = `${meta.label} · ${p.region}`;
       visitedMeta = state.parkVisited.get(id);
       wishMeta = state.parkWishlist.get(id);
+      wikiQuery = `${p.name} ${meta.label} Chile`;
     } else {
       const c = state.byId.get(id);
       if (!c) return;
@@ -1327,6 +1473,7 @@
       regionLabel = shortRegion(c.region);
       visitedMeta = state.visited.get(id);
       wishMeta = state.wishlist.get(id);
+      wikiQuery = `${c.name} comuna Chile`;
     }
 
     modalKind = kind;
@@ -1344,6 +1491,7 @@
     el.modalNote.value = modalDraft.note;
     updateModalStatusUI();
     el.modalOverlay.hidden = false;
+    loadWikiInfo(kind, id, wikiQuery);
   }
 
   function closeEntityModal() {
