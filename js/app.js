@@ -313,6 +313,7 @@
     ring: document.getElementById("ring-fg"),
     search: document.getElementById("search-input"),
     searchResults: document.getElementById("search-results"),
+    searchClear: document.getElementById("search-clear"),
     regionsList: document.getElementById("regions-list"),
     categoriesList: document.getElementById("categories-list"),
     visitedList: document.getElementById("visited-list"),
@@ -720,7 +721,7 @@
   // ---------- Map ----------
 
   const map = L.map(el.map, {
-    zoomControl: true,
+    zoomControl: false,
     worldCopyJump: false,
     attributionControl: false,
     zoomSnap: 0.25,
@@ -1792,45 +1793,107 @@
 
   // ---------- Search ----------
 
-  el.search.addEventListener("input", () => {
-    const q = normalize(el.search.value.trim());
+  // Lives on top of the map so it's reachable on phones without scrolling the sidebar.
+  // Matches comunas and protected areas; names that start with the query rank first.
+  function searchEntities(q) {
+    const results = [];
+    for (const c of state.comunas) {
+      const n = normalize(c.name);
+      const pos = n.indexOf(q);
+      if (pos === -1) continue;
+      const status = state.visited.has(c.id) ? "✅ visitada" : state.wishlist.has(c.id) ? "🎒 en tu lista" : "";
+      results.push({ kind: "comuna", id: c.id, name: c.name, sub: shortRegion(c.region), status, rank: pos === 0 ? 0 : 1 });
+    }
+    for (const p of state.parkById.values()) {
+      const n = normalize(p.name);
+      const pos = n.indexOf(q);
+      if (pos === -1) continue;
+      const meta = AREA_TYPE_META[p.type] || AREA_TYPE_META.parque;
+      const st = parkStatus(p.id);
+      const status = st === "visited" ? "✅ visitada" : st === "wishlist" ? "🎒 en tu lista" : "";
+      // Park names usually begin with "Parque Nacional…", so also count a match at the start of any word.
+      const rank = pos === 0 || n.includes(" " + q) ? 0 : 1;
+      results.push({ kind: "park", id: p.id, name: `${meta.icon} ${p.name}`, sub: `${meta.label} · ${p.region}`, status, rank });
+    }
+    results.sort((a, b) => a.rank - b.rank || a.name.localeCompare(b.name, "es"));
+    return results.slice(0, 30);
+  }
+
+  function closeSearchResults() {
+    el.searchResults.classList.remove("open");
+  }
+
+  function selectSearchResult(r) {
+    closeSearchResults();
+    el.search.blur(); // hides the phone keyboard so the modal isn't covered
+    if (r.kind === "park") {
+      const p = state.parkById.get(r.id);
+      if (p && p.lat != null) map.flyTo([p.lat, p.lng], 9);
+    } else {
+      const layer = state.layerById.get(r.id);
+      if (layer && layer.getBounds) map.flyToBounds(layer.getBounds(), { padding: [40, 40], maxZoom: 10 });
+    }
+    openEntityModal(r.kind, r.id);
+  }
+
+  let searchMatches = [];
+
+  function renderSearch() {
+    const raw = el.search.value.trim();
+    el.searchClear.hidden = !el.search.value;
+    const q = normalize(raw);
     if (!q) {
-      el.searchResults.classList.remove("open");
+      searchMatches = [];
+      closeSearchResults();
       el.searchResults.innerHTML = "";
       return;
     }
-    const matches = state.comunas
-      .filter((c) => normalize(c.name).includes(q))
-      .slice(0, 30);
+    searchMatches = searchEntities(q);
 
     el.searchResults.innerHTML = "";
-    if (!matches.length) {
-      el.searchResults.innerHTML = `<div class="search-item"><span class="name">Sin resultados</span></div>`;
+    if (!searchMatches.length) {
+      el.searchResults.innerHTML = `<div class="search-item search-empty"><span class="name">Sin resultados</span></div>`;
     } else {
-      for (const c of matches) {
-        const status = state.visited.has(c.id) ? "✅ visitada" : state.wishlist.has(c.id) ? "🎒 en tu lista" : "";
-        const item = document.createElement("div");
+      for (const r of searchMatches) {
+        const item = document.createElement("button");
+        item.type = "button";
         item.className = "search-item";
         item.innerHTML = `
           <span>
-            <span class="name">${c.name}</span><br>
-            <span class="region">${shortRegion(c.region)}</span>
+            <span class="name">${escapeHtml(r.name)}</span><br>
+            <span class="region">${escapeHtml(r.sub)}</span>
           </span>
-          <span class="check">${status}</span>
+          <span class="check">${r.status}</span>
         `;
-        item.addEventListener("click", () => {
-          const layer = state.layerById.get(c.id);
-          if (layer && layer.getBounds) map.flyToBounds(layer.getBounds(), { padding: [40, 40], maxZoom: 10 });
-          openEntityModal("comuna", c.id);
-        });
+        item.addEventListener("click", () => selectSearchResult(r));
         el.searchResults.appendChild(item);
       }
     }
+    el.searchResults.scrollTop = 0;
     el.searchResults.classList.add("open");
+  }
+
+  el.search.addEventListener("input", renderSearch);
+  el.search.addEventListener("focus", () => {
+    if (el.search.value.trim()) renderSearch();
+  });
+  el.search.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && searchMatches.length) {
+      e.preventDefault();
+      selectSearchResult(searchMatches[0]);
+    } else if (e.key === "Escape") {
+      closeSearchResults();
+      el.search.blur();
+    }
+  });
+  el.searchClear.addEventListener("click", () => {
+    el.search.value = "";
+    renderSearch();
+    el.search.focus();
   });
 
   document.addEventListener("click", (e) => {
-    if (!el.searchResults.contains(e.target) && e.target !== el.search) {
+    if (!el.searchResults.contains(e.target) && e.target !== el.search && e.target !== el.searchClear) {
       el.searchResults.classList.remove("open");
     }
     if (
