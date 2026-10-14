@@ -702,6 +702,9 @@
   function applyTheme(theme) {
     document.documentElement.setAttribute("data-theme", theme);
     el.btnTheme.textContent = theme === "dark" ? "☀️" : "🌙";
+    // Status bar / browser chrome color follows the topbar (--card) of the active theme.
+    const themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeMeta) themeMeta.content = theme === "dark" ? "#261f15" : "#f9f3e5";
   }
   applyTheme(currentTheme);
 

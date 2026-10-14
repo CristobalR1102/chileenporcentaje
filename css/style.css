@@ -87,6 +87,10 @@ html, body {
   justify-content: space-between;
   gap: 16px;
   padding: 12px 20px;
+  /* Installed as an app, the page runs under the phone's status bar / notch. */
+  padding-top: calc(12px + env(safe-area-inset-top));
+  padding-left: calc(20px + env(safe-area-inset-left));
+  padding-right: calc(20px + env(safe-area-inset-right));
   background: var(--card);
   border-bottom: 1px solid var(--border);
   box-shadow: var(--shadow);
@@ -1442,7 +1446,11 @@ html, body {
   .bottom-nav-btn.active { color: var(--green-dark); background: var(--green-tint-bg); }
   .bottom-nav-btn.active span { filter: none; opacity: 1; }
 
-  .topbar { padding: 10px 14px; flex-wrap: nowrap; gap: 10px; }
+  .topbar {
+    padding: calc(10px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) 10px calc(14px + env(safe-area-inset-left));
+    flex-wrap: nowrap;
+    gap: 10px;
+  }
   .brand-text p { display: none; }
   .brand-text h1 { font-size: 15px; }
   .topbar-actions { flex-wrap: nowrap; gap: 6px; }
