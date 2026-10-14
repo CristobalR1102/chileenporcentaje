@@ -298,6 +298,31 @@
   </div>
 </div>
 
+<div id="reset-modal" class="modal-overlay" hidden>
+  <div class="modal-card reset-card" role="alertdialog" aria-modal="true" aria-labelledby="reset-title" aria-describedby="reset-text">
+    <div class="reset-icon" aria-hidden="true">🗑️</div>
+    <h3 id="reset-title" class="modal-title">¿Borrar todo tu progreso?</h3>
+    <p id="reset-text" class="modal-region">Se eliminará lo siguiente y <strong>no se puede deshacer</strong>:</p>
+    <ul id="reset-summary" class="reset-summary"></ul>
+    <p class="reset-tip">Consejo: usa <strong>⋯ → Exportar progreso</strong> antes, para tener un respaldo.</p>
+    <div class="modal-actions">
+      <button id="reset-cancel" class="btn btn-ghost" type="button">Cancelar</button>
+      <button id="reset-confirm" class="btn btn-danger-solid" type="button">Sí, borrar todo</button>
+    </div>
+  </div>
+</div>
+
+<div id="reset-empty-modal" class="modal-overlay" hidden>
+  <div class="modal-card reset-card" role="dialog" aria-modal="true" aria-labelledby="reset-empty-title">
+    <div class="reset-icon" aria-hidden="true">🗺️</div>
+    <h3 id="reset-empty-title" class="modal-title">No hay nada que borrar</h3>
+    <p class="modal-region">Aún no has marcado comunas, áreas protegidas ni lugares en tu lista de deseos.</p>
+    <div class="modal-actions">
+      <button id="reset-empty-ok" class="btn btn-primary" type="button">Entendido</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="js/app.js"></script>
 <script>

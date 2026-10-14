@@ -2074,10 +2074,52 @@
     e.target.value = "";
   });
 
+  // Reset asks for confirmation in an in-app dialog (a native confirm() looks out of place in
+  // the installed app). Focus starts on "Cancelar" so an accidental Enter doesn't wipe data.
+  const resetModal = document.getElementById("reset-modal");
+  const resetEmptyModal = document.getElementById("reset-empty-modal");
+  const resetSummary = document.getElementById("reset-summary");
+  const resetCancel = document.getElementById("reset-cancel");
+  const resetEmptyOk = document.getElementById("reset-empty-ok");
+
+  function closeResetModals() {
+    resetModal.hidden = true;
+    resetEmptyModal.hidden = true;
+  }
+
   el.btnReset.addEventListener("click", () => {
-    const hasAnything = state.visited.size || state.wishlist.size || state.parkVisited.size || state.parkWishlist.size;
-    if (!hasAnything) return;
-    if (!confirm("¿Borrar todas tus comunas y áreas protegidas visitadas, y tu lista de deseos? Esta acción no se puede deshacer.")) return;
+    const parts = [
+      [state.visited.size, "comuna visitada", "comunas visitadas"],
+      [state.wishlist.size, "comuna en tu lista de deseos", "comunas en tu lista de deseos"],
+      [state.parkVisited.size, "área protegida visitada", "áreas protegidas visitadas"],
+      [state.parkWishlist.size, "área protegida en tu lista de deseos", "áreas protegidas en tu lista de deseos"],
+    ].filter(([n]) => n > 0);
+
+    if (!parts.length) {
+      resetEmptyModal.hidden = false;
+      resetEmptyOk.focus();
+      return;
+    }
+    resetSummary.innerHTML = parts
+      .map(([n, one, many]) => `<li><strong>${n}</strong> ${n === 1 ? one : many}</li>`)
+      .join("");
+    resetModal.hidden = false;
+    resetCancel.focus();
+  });
+
+  resetCancel.addEventListener("click", closeResetModals);
+  resetEmptyOk.addEventListener("click", closeResetModals);
+  for (const m of [resetModal, resetEmptyModal]) {
+    m.addEventListener("click", (e) => {
+      if (e.target === m) closeResetModals();
+    });
+  }
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeResetModals();
+  });
+
+  document.getElementById("reset-confirm").addEventListener("click", () => {
+    closeResetModals();
     state.visited.clear();
     state.wishlist.clear();
     state.parkVisited.clear();

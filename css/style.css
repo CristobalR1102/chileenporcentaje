@@ -1254,6 +1254,46 @@ html, body {
 }
 .modal-actions .btn { flex: 1; }
 
+/* Reset confirmation */
+.reset-card { text-align: center; }
+.reset-card .modal-title { margin: 0 0 6px; }
+.reset-icon {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  background: var(--terracotta-soft);
+  border: 1px solid var(--terracotta-tint-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+.reset-summary {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.8;
+}
+.reset-summary strong { color: var(--terracotta); }
+.reset-tip {
+  margin: 0 0 18px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+.btn-danger-solid {
+  border: 1px solid #8f3f20;
+  background: #b3552f;
+  color: var(--white);
+}
+.btn-danger-solid:hover { background: #8f3f20; border-color: #8f3f20; }
+
 /* Timeline */
 .timeline-card {
   max-width: 460px;
