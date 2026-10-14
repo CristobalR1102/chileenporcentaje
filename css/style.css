@@ -90,7 +90,9 @@ html, body {
   background: var(--card);
   border-bottom: 1px solid var(--border);
   box-shadow: var(--shadow);
-  z-index: 20;
+  /* Above the map's floating controls (search, Leaflet zoom) so the "Más" menu overlaps them. */
+  position: relative;
+  z-index: 1100;
   flex-wrap: wrap;
 }
 
@@ -267,16 +269,168 @@ html, body {
 
 /* Sidebar */
 .sidebar {
-  width: 340px;
+  width: 360px;
   flex-shrink: 0;
   background: var(--card);
   border-left: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
-  padding: 18px;
-  gap: 18px;
+  min-height: 0;
 }
+
+/* Section tabs at the top of the sidebar (desktop) */
+.view-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.view-tab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: none;
+  background: none;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 6px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.view-tab:hover { background: var(--bg); color: var(--ink); }
+.view-tab.active {
+  background: var(--green-tint-bg);
+  color: var(--green-dark);
+}
+
+/* Each view scrolls on its own, sections separated by a hairline */
+.view {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 18px;
+  gap: 20px;
+}
+.view[hidden] { display: none; }
+.view > * + *:not(.timeline-card-btn) {
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+/* Inside a dedicated view the list can use the full height instead of a nested scroll. */
+.view .parks-list { max-height: none; }
+
+/* Bitácora entry card */
+.timeline-card-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--green-tint-border);
+  background: var(--green-tint-bg);
+  color: var(--green-dark);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.timeline-card-btn:hover { background: var(--green-tint-bg-hover); }
+.timeline-card-icon { font-size: 22px; }
+.timeline-card-text { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.timeline-card-text strong { font-size: 14px; }
+.timeline-card-text small { font-size: 12px; color: var(--ink-soft); }
+.timeline-card-btn > span:last-child { font-size: 22px; font-weight: 700; }
+
+/* Bottom navigation (mobile only) */
+.bottom-nav { display: none; }
+
+/* Compact progress indicator in the topbar */
+.progress-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.progress-pill:hover { border-color: var(--ink-soft); }
+.progress-pill strong { color: var(--green-dark); font-variant-numeric: tabular-nums; }
+.progress-pill-label { color: var(--ink-soft); font-size: 12px; font-weight: 600; }
+.progress-pill-bar {
+  width: 48px;
+  height: 6px;
+  border-radius: 4px;
+  background: var(--unvisited-fill);
+  overflow: hidden;
+}
+.progress-pill-bar span {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--green);
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+/* "Más" dropdown menu */
+.menu { position: relative; }
+.menu-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 220px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(41, 32, 18, 0.22);
+  padding: 6px;
+  z-index: 1500;
+  display: flex;
+  flex-direction: column;
+}
+.menu-list[hidden] { display: none; }
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 9px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.menu-item:hover { background: var(--bg); }
+.menu-item-danger { color: var(--terracotta); }
+.menu-item-danger:hover { background: var(--terracotta-soft); }
+.menu-sep {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 4px 2px;
+}
+
+.topbar-actions { align-items: center; }
+.btn-primary { gap: 6px; }
 
 .stat-card {
   display: flex;
@@ -1246,18 +1400,62 @@ html, body {
 
 /* Responsive */
 @media (max-width: 860px) {
-  .layout { flex-direction: column; }
-  .map-wrap { height: 52vh; flex: none; }
+  /* App-style layout: the map fills the screen, the other sections open as full-screen
+     views on top of it, and a bottom nav switches between them. */
+  .layout { position: relative; }
   .sidebar {
+    position: absolute;
+    inset: 0;
     width: 100%;
     border-left: none;
-    border-top: 1px solid var(--border);
+    z-index: 1000;
   }
-  .topbar { padding: 10px 14px; }
+  body[data-view="map"] .sidebar { display: none; }
+  .view-tabs { display: none; }
+  .view { padding: 16px; }
+
+  .bottom-nav {
+    display: flex;
+    flex-shrink: 0;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    padding: 4px 6px calc(4px + env(safe-area-inset-bottom));
+    z-index: 20;
+  }
+  .bottom-nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    border: none;
+    background: none;
+    color: var(--ink-soft);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 6px 2px;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  .bottom-nav-btn span { font-size: 19px; line-height: 1.1; filter: grayscale(1); opacity: 0.6; }
+  .bottom-nav-btn.active { color: var(--green-dark); background: var(--green-tint-bg); }
+  .bottom-nav-btn.active span { filter: none; opacity: 1; }
+
+  .topbar { padding: 10px 14px; flex-wrap: nowrap; gap: 10px; }
   .brand-text p { display: none; }
+  .brand-text h1 { font-size: 15px; }
+  .topbar-actions { flex-wrap: nowrap; gap: 6px; }
+  .progress-pill-bar, .progress-pill-label, .btn-label { display: none; }
+  .btn-primary { padding: 8px 11px; }
   .map-search { top: 10px; left: 10px; width: calc(100% - 66px); }
   /* 16px stops iOS Safari from zooming the page when the field gets focus. */
   .map-search #search-input { font-size: 16px; }
-  .map-search .search-results { max-height: calc(52vh - 70px); }
+  .map-search .search-results { max-height: calc(100% - 70px); }
   .search-item { padding: 11px 12px; font-size: 15px; }
+  .map-legend { left: 10px; right: 10px; bottom: 10px; font-size: 11.5px; }
+}
+
+@media (max-width: 420px) {
+  .brand-text h1 { display: none; }
 }

@@ -26,15 +26,28 @@
       </div>
     </div>
     <div class="topbar-actions">
+      <button id="topbar-progress" class="progress-pill" type="button" title="Ver tu progreso">
+        <span class="progress-pill-bar"><span id="topbar-progress-fill"></span></span>
+        <strong id="topbar-progress-pct">0%</strong>
+        <span class="progress-pill-label">de Chile</span>
+      </button>
       <button id="btn-theme" class="btn btn-ghost btn-icon" title="Cambiar entre modo claro y oscuro">🌙</button>
-      <button id="btn-share" class="btn btn-ghost" title="Genera una tarjeta con tu progreso">Compartir</button>
-      <button id="btn-compare" class="btn btn-ghost" title="Compara tu progreso con el de un amigo">Comparar</button>
-      <button id="btn-export" class="btn btn-ghost" title="Descargar tu progreso como archivo">Exportar</button>
-      <label class="btn btn-ghost" title="Cargar un progreso guardado">
-        Importar
-        <input id="input-import" type="file" accept="application/json" hidden>
-      </label>
-      <button id="btn-reset" class="btn btn-ghost btn-danger" title="Borrar todo tu progreso">Reiniciar</button>
+      <button id="btn-share" class="btn btn-primary" title="Genera una tarjeta con tu progreso">
+        <span aria-hidden="true">📤</span><span class="btn-label">Compartir</span>
+      </button>
+      <div class="menu">
+        <button id="btn-menu" class="btn btn-ghost btn-icon" type="button" aria-haspopup="menu" aria-expanded="false" title="Más opciones">⋯</button>
+        <div id="menu-list" class="menu-list" role="menu" hidden>
+          <button id="btn-compare" class="menu-item" role="menuitem" type="button">👥 Comparar con un amigo</button>
+          <button id="btn-export" class="menu-item" role="menuitem" type="button">⬇️ Exportar progreso</button>
+          <label class="menu-item" role="menuitem">
+            ⬆️ Importar progreso
+            <input id="input-import" type="file" accept="application/json" hidden>
+          </label>
+          <hr class="menu-sep">
+          <button id="btn-reset" class="menu-item menu-item-danger" role="menuitem" type="button">🗑️ Reiniciar todo</button>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -71,6 +84,14 @@
 
     <aside class="sidebar">
 
+      <nav class="view-tabs" role="tablist" aria-label="Secciones">
+        <button class="view-tab" type="button" role="tab" data-view-btn="progress"><span aria-hidden="true">📊</span> Progreso</button>
+        <button class="view-tab" type="button" role="tab" data-view-btn="explore"><span aria-hidden="true">🧭</span> Explorar</button>
+        <button class="view-tab" type="button" role="tab" data-view-btn="trips"><span aria-hidden="true">🎒</span> Mis viajes</button>
+      </nav>
+
+      <div class="view" data-view="progress" role="tabpanel">
+
       <div class="stat-card">
         <div class="stat-ring">
           <svg viewBox="0 0 120 120" class="ring-svg">
@@ -82,7 +103,6 @@
             <small id="stat-count">0 / 0 comunas</small>
           </div>
         </div>
-        <button id="btn-timeline" class="timeline-link" type="button">📖 Ver tu bitácora de viajes</button>
       </div>
 
       <div class="badges-panel">
@@ -92,6 +112,26 @@
         </div>
         <div id="badges-grid" class="badges-grid"></div>
       </div>
+
+      <div class="regions-panel">
+        <div class="panel-header">
+          <h2>Por región</h2>
+          <span class="panel-hint">de norte a sur</span>
+        </div>
+        <div id="regions-list" class="regions-list"></div>
+      </div>
+
+      <div class="categories-panel">
+        <div class="panel-header">
+          <h2>Tipos de destino</h2>
+          <span class="panel-hint">de lo que ya conoces</span>
+        </div>
+        <div id="categories-list" class="regions-list"></div>
+      </div>
+
+      </div>
+
+      <div class="view" data-view="explore" role="tabpanel" hidden>
 
       <div class="reco-panel">
         <div class="panel-header">
@@ -119,22 +159,6 @@
         <div id="reco-list" class="reco-list"></div>
       </div>
 
-      <div class="categories-panel">
-        <div class="panel-header">
-          <h2>Tipos de destino</h2>
-          <span class="panel-hint">de lo que ya conoces</span>
-        </div>
-        <div id="categories-list" class="regions-list"></div>
-      </div>
-
-      <div class="regions-panel">
-        <div class="panel-header">
-          <h2>Por región</h2>
-          <span class="panel-hint">de norte a sur</span>
-        </div>
-        <div id="regions-list" class="regions-list"></div>
-      </div>
-
       <div class="parks-panel">
         <div class="panel-header">
           <h2>Áreas protegidas</h2>
@@ -142,6 +166,19 @@
         </div>
         <div id="parks-list" class="parks-list"></div>
       </div>
+
+      </div>
+
+      <div class="view" data-view="trips" role="tabpanel" hidden>
+
+      <button id="btn-timeline" class="timeline-card-btn" type="button">
+        <span class="timeline-card-icon" aria-hidden="true">📖</span>
+        <span class="timeline-card-text">
+          <strong>Tu bitácora de viajes</strong>
+          <small>Todo lo que has visitado, en orden</small>
+        </span>
+        <span aria-hidden="true">›</span>
+      </button>
 
       <div class="wishlist-panel">
         <div class="panel-header">
@@ -159,9 +196,18 @@
         <div id="visited-list" class="visited-list"></div>
       </div>
 
+      </div>
+
     </aside>
 
   </main>
+
+  <nav class="bottom-nav" role="tablist" aria-label="Secciones">
+    <button class="bottom-nav-btn" type="button" role="tab" data-view-btn="map"><span aria-hidden="true">🗺️</span>Mapa</button>
+    <button class="bottom-nav-btn" type="button" role="tab" data-view-btn="progress"><span aria-hidden="true">📊</span>Progreso</button>
+    <button class="bottom-nav-btn" type="button" role="tab" data-view-btn="explore"><span aria-hidden="true">🧭</span>Explorar</button>
+    <button class="bottom-nav-btn" type="button" role="tab" data-view-btn="trips"><span aria-hidden="true">🎒</span>Mis viajes</button>
+  </nav>
 </div>
 
 <div id="comuna-modal" class="modal-overlay" hidden>

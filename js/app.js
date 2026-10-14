@@ -308,6 +308,11 @@
   const el = {
     map: document.getElementById("map"),
     mapLoading: document.getElementById("map-loading"),
+    topbarProgress: document.getElementById("topbar-progress"),
+    topbarProgressPct: document.getElementById("topbar-progress-pct"),
+    topbarProgressFill: document.getElementById("topbar-progress-fill"),
+    btnMenu: document.getElementById("btn-menu"),
+    menuList: document.getElementById("menu-list"),
     percent: document.getElementById("stat-percent"),
     count: document.getElementById("stat-count"),
     ring: document.getElementById("ring-fg"),
@@ -750,6 +755,68 @@
     window.visualViewport.addEventListener("resize", scheduleInvalidateSize);
   }
 
+  // ---------- Views ----------
+  // The sidebar is split into views (Progreso / Explorar / Mis viajes). On desktop the map
+  // is always visible next to the active view; on narrow screens the map is its own view
+  // and the bottom nav switches between it and the others.
+
+  const VIEW_STORAGE_KEY = "chileenporcentaje:view";
+  const mobileQuery = window.matchMedia("(max-width: 860px)");
+  let currentView = "progress";
+  try {
+    currentView = localStorage.getItem(VIEW_STORAGE_KEY) || "progress";
+  } catch (e) { /* storage unavailable */ }
+
+  function showView(view) {
+    // "map" only exists as its own view on mobile; on desktop fall back to the default panel.
+    const panelView = view === "map" ? null : view;
+    currentView = view;
+    document.body.dataset.view = view;
+    for (const v of document.querySelectorAll(".view")) {
+      v.hidden = panelView ? v.dataset.view !== panelView : v.dataset.view !== "progress";
+    }
+    for (const b of document.querySelectorAll("[data-view-btn]")) {
+      const active = b.dataset.viewBtn === view || (view === "map" && !mobileQuery.matches && b.dataset.viewBtn === "progress");
+      b.classList.toggle("active", active);
+      b.setAttribute("aria-selected", String(active));
+    }
+    try {
+      localStorage.setItem(VIEW_STORAGE_KEY, view);
+    } catch (e) { /* storage unavailable */ }
+  }
+
+  // On mobile the panels cover the map, so anything that moves the map should bring it back.
+  function revealMap() {
+    if (mobileQuery.matches && currentView !== "map") showView("map");
+  }
+
+  for (const b of document.querySelectorAll("[data-view-btn]")) {
+    b.addEventListener("click", () => showView(b.dataset.viewBtn));
+  }
+  el.topbarProgress.addEventListener("click", () => showView("progress"));
+  mobileQuery.addEventListener("change", () => showView(currentView));
+  showView(currentView);
+
+  function closeMenu() {
+    el.menuList.hidden = true;
+    el.btnMenu.setAttribute("aria-expanded", "false");
+  }
+  el.btnMenu.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const open = el.menuList.hidden;
+    el.menuList.hidden = !open;
+    el.btnMenu.setAttribute("aria-expanded", String(open));
+  });
+  el.menuList.addEventListener("click", (e) => {
+    if (e.target.closest(".menu-item")) closeMenu();
+  });
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".menu")) closeMenu();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeMenu();
+  });
+
   const airportLayer = L.layerGroup();
   const parkLayer = L.layerGroup();
 
@@ -977,6 +1044,8 @@
     el.percent.textContent = `${pct.toFixed(1)}%`;
     el.count.textContent = `${visited} / ${total} comunas`;
     el.ring.style.strokeDashoffset = String(CIRCUMFERENCE * (1 - pct / 100));
+    el.topbarProgressPct.textContent = `${pct.toFixed(1)}%`;
+    el.topbarProgressFill.style.width = `${pct}%`;
   }
 
   function renderBadges() {
@@ -1067,6 +1136,7 @@
     if (!bounds.length) return;
     let combined = bounds[0];
     for (let i = 1; i < bounds.length; i++) combined = combined.extend(bounds[i]);
+    revealMap();
     map.flyToBounds(combined, { padding: [20, 20] });
   }
 
@@ -1088,6 +1158,7 @@
         </span>
       `;
       row.addEventListener("click", () => {
+        revealMap();
         if (p.lat != null && p.lng != null) map.flyTo([p.lat, p.lng], 9);
         openEntityModal("park", p.id);
       });
@@ -1155,6 +1226,7 @@
   function flyAndHighlight(c) {
     const layer = state.layerById.get(c.id);
     if (!layer) return;
+    revealMap();
     if (layer.getBounds) map.flyToBounds(layer.getBounds(), { padding: [40, 40], maxZoom: 10 });
     layer.setStyle(highlightStyle(c.id));
     layer.openTooltip();
